@@ -1,23 +1,27 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 const OTPInput = ({ length = 6, onSubmit }) => {
   const [otp, setOtp] = useState(new Array(length).fill(""));
   const inputRefs = useRef([]);
 
+  useEffect(() => {
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus(); // Auto-focus first input
+    }
+  }, []);
+
   const handleChange = (e, index) => {
-    const value = e.target.value;
-    if (isNaN(value)) return; // Prevent non-numeric input
+    const value = e.target.value.replace(/\D/g, ""); // Only allow digits
+    if (!value) return; // Ignore empty input
 
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1); // Only take the last entered digit
+    newOtp[index] = value.slice(-1); // Store last entered digit
     setOtp(newOtp);
 
-    // Move to next input if available & not the last field
-    if (value && index < length - 1) {
-      inputRefs.current[index + 1].focus();
+    if (index < length - 1 && value) {
+      inputRefs.current[index + 1]?.focus(); // Move to next input
     }
 
-    // If all fields are filled, trigger submit
     if (newOtp.every((num) => num !== "")) {
       onSubmit(newOtp.join(""));
     }
@@ -25,13 +29,15 @@ const OTPInput = ({ length = 6, onSubmit }) => {
 
   const handleKeyDown = (e, index) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1].focus(); // Move focus back
+      inputRefs.current[index - 1]?.focus(); // Move focus back
     }
   };
 
   const handlePaste = (e) => {
-    const pasteData = e.clipboardData.getData("text").split("").slice(0, length);
-    if (pasteData.every((char) => !isNaN(char))) {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, length).split("");
+
+    if (pasteData.length === length) {
       setOtp(pasteData);
       pasteData.forEach((char, index) => {
         if (inputRefs.current[index]) {
@@ -39,8 +45,8 @@ const OTPInput = ({ length = 6, onSubmit }) => {
         }
       });
 
-      // Focus on the last input if all filled
-      inputRefs.current[Math.min(pasteData.length, length - 1)].focus();
+      inputRefs.current[length - 1]?.focus(); // Move to last input
+      onSubmit(pasteData.join(""));
     }
   };
 
@@ -56,7 +62,7 @@ const OTPInput = ({ length = 6, onSubmit }) => {
           onChange={(e) => handleChange(e, index)}
           onKeyDown={(e) => handleKeyDown(e, index)}
           onPaste={handlePaste}
-          className="w-12 h-12 bg-[#333A5C] text-white text-center text-xl rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-12 h-12 bg-[#333A5C] text-white text-center text-xl rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
         />
       ))}
     </div>
